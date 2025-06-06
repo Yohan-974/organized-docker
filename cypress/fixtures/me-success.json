@@ -1,0 +1,11 @@
+{
+  "user": {
+    "id": "user-id-123",
+    "email": "testuser@example.com",
+    "full_name": "Test User Cypress",
+    "avatar_url": "https://example.com/avatar.jpg",
+    "is_active": true,
+    "created_at": "2023-01-01T10:00:00Z",
+    "updated_at": "2023-01-01T10:00:00Z"
+  }
+}

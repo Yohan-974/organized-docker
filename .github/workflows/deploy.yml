@@ -1,7 +1,5 @@
-name: Deploy app to Live
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+name: Build Production Artifact
+# Removed VERCEL_ORG_ID and VERCEL_PROJECT_ID from env
 
 on:
   workflow_dispatch:
@@ -9,40 +7,51 @@ on:
 permissions: read-all
 
 jobs:
-  dev_deploy:
-    name: Build and Deploy to Production
+  build_artifact: # Renamed job
+    name: Build Production Artifact # Updated job name
     if: ${{ github.repository == 'sws2apps/organized-app' && github.ref == 'refs/heads/main' }}
-    environment:
-      name: Live (organized-app.com)
-      url: https://organized-app.com
+    # Removed environment section as it was Vercel specific
+    # environment:
+    #   name: Live (organized-app.com)
+    #   url: https://organized-app.com
     runs-on: ubuntu-latest
 
     permissions:
       contents: 'read'
-      id-token: 'write'
+      # id-token: 'write' # Potentially not needed if not deploying to a cloud provider directly from GH Actions
 
     steps:
       - name: Checkout for release preparation
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # Consider updating to v3 or v4
         with:
           ref: main
           persist-credentials: false
 
       - name: Use Node.js LTS version
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # Consider updating to v3 or v4
         with:
-          node-version: lts/Jod
+          node-version: lts/Jod # Consider updating to a specific LTS version e.g., 18.x or 20.x
 
       - name: Install package dependencies
         run: npm ci
 
       - name: Run Semantic Release to version and build App
+        # This step is assumed to run `npm run build` which creates the `dist` directory.
+        # If not, an explicit `npm run build` step would be needed here.
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: organized-app-build
+          path: dist # Assuming 'dist' is the build output directory
+          if-no-files-found: error # Fail if 'dist' is not found
 
-      - name: Deploy project to Vercel
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+      # Removed Vercel CLI installation and deployment steps
+      # - name: Install Vercel CLI
+      #   run: npm install --global vercel@latest
+
+      # - name: Deploy project to Vercel
+      #   run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}

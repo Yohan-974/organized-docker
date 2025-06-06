@@ -101,7 +101,8 @@ const runBackup = async () => {
       } while (backup === 'started');
     }
 
-    if (accountType === 'pocket') {
+    // Updated Pocket account backup flow
+    if (accountType === 'pocket' && idToken && userID && idToken.length > 0 && userID.length > 0) {
       backup = 'started';
       self.postMessage('Syncing');
 
@@ -113,6 +114,8 @@ const runBackup = async () => {
 
         const backupData = await apiGetPocketBackup({
           apiHost,
+          userID: self.setting.userID, // Pass userID
+          idToken: self.setting.idToken, // Pass idToken
           metadata: JSON.stringify(metadata),
         });
 
@@ -121,6 +124,8 @@ const runBackup = async () => {
         const metadataUpdate = await dbGetMetadata();
         const data = await apiSendPocketBackup({
           apiHost,
+          userID: self.setting.userID, // Pass userID
+          idToken: self.setting.idToken, // Pass idToken
           reqPayload,
           metadata: JSON.stringify(metadataUpdate),
         });
@@ -153,7 +158,15 @@ const runBackup = async () => {
 
         retry++;
       } while (backup === 'started');
+    } else if (accountType === 'pocket' && (!idToken || idToken.length === 0 || !userID || userID.length === 0)) {
+        // Handle case where pocket account might not have token/userID (e.g. if user never logged in via new system)
+        // Depending on policy, could skip backup, or attempt an old method if one existed.
+        // For now, we'll log and skip.
+        console.warn('Pocket account backup skipped: Missing idToken or userID. User may need to log in again.');
+        self.postMessage({ error: 'BACKUP_SKIPPED', details: 'Pocket account needs re-authentication.' });
+        backup = 'skipped'; // custom status
     }
+
 
     if (backup === 'completed') {
       await dbClearExportState();

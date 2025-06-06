@@ -92,6 +92,18 @@ In accordance with **GDPR**, we collect only the most basic user data needed for
 
 _This project is tested with BrowserStack_
 
+## Technical Overview
+
+The Organized frontend is a Progressive Web Application (PWA) built with React (using Vite).
+
+User authentication is managed by a dedicated Node.js backend service located in the `/auth-backend` directory. This service uses PostgreSQL as its database and handles user registration, login (email/password and Google OAuth), session management with JWTs, and password reset functionality.
+
+The database schema for this authentication backend is defined in `schema.sql` in the root of the project.
+
+Data synchronization and backup functionalities rely on an external API (e.g., `api.organized-app.com`). This API must be configured to accept and verify JWTs issued by the new `auth-backend` service for user-specific data operations.
+
+For detailed instructions on setting up the local development environment, including the frontend and the authentication backend, please refer to the [Local Environment Setup Guide](./LOCAL_ENVIRONMENT_SETUP.md).
+
 ## Want to contribute?
 
 We really appreciate your volunteer spirit! You can contribute to the app in a few ways:

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { getApp } from 'firebase/app';
-import { getId, getInstallations } from 'firebase/installations';
+// Removed: import { getApp } from 'firebase/app';
+// Removed: import { getId, getInstallations } from 'firebase/installations';
 import { useQuery } from '@tanstack/react-query';
 import { apiFeatureFlagsGet } from '@services/api/app';
 import { apiHostState, featureFlagsState, isOnlineState } from '@states/app';
@@ -73,15 +73,24 @@ const useFeatureFlags = () => {
 
   useEffect(() => {
     const handleLoading = async () => {
+      const localStorageKey = 'clientInstallationId';
       try {
-        const app = getApp();
-
-        const installations = getInstallations(app);
-        const id = await getId(installations);
-        setInstallationId(id);
+        let idFromStorage = localStorage.getItem(localStorageKey);
+        if (idFromStorage) {
+          setInstallationId(idFromStorage);
+        } else {
+          const newId = crypto.randomUUID();
+          localStorage.setItem(localStorageKey, newId);
+          setInstallationId(newId);
+        }
       } catch (error) {
-        console.error(error);
-        setIsLoading(false);
+        // Errors here could be if localStorage is unavailable or crypto.randomUUID is not supported (very unlikely in modern browsers)
+        console.error("Failed to get/set client installation ID:", error);
+        // Potentially set a fallback ID or handle error appropriately
+        // For now, we'll let it proceed, which might mean installationId remains empty, and useQuery might not run.
+        // Or, generate a non-persistent UUID for the session:
+        // setInstallationId(crypto.randomUUID());
+        setIsLoading(false); // Ensure loading is set to false if there's an error here
       }
     };
 

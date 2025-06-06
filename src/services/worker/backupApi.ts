@@ -66,17 +66,22 @@ export const apiSendCongregationBackup = async ({
 
 export const apiGetPocketBackup = async ({
   apiHost,
+  userID, // Added
+  idToken, // Added
   metadata,
 }: {
   apiHost: string;
+  userID: string; // Added
+  idToken: string; // Added
   metadata: string;
 }) => {
-  const res = await fetch(`${apiHost}api/v3/pockets/backup`, {
+  const res = await fetch(`${apiHost}api/v3/pockets/backup`, { // URL remains the same
     method: 'GET',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
+      Authorization: `Bearer ${idToken}`, // Added Authorization header
       appclient: 'organized',
       appversion: import.meta.env.PACKAGE_VERSION,
       metadata,
@@ -94,18 +99,27 @@ export const apiGetPocketBackup = async ({
 
 export const apiSendPocketBackup = async ({
   apiHost,
+  userID, // Added
+  idToken, // Added
   reqPayload,
   metadata,
+}: { // Added type for parameters
+  apiHost: string;
+  userID: string; // Added
+  idToken: string; // Added
+  reqPayload: object;
+  metadata: string; // Assuming metadata is stringified JSON here
 }) => {
-  const res = await fetch(`${apiHost}api/v3/pockets/backup`, {
+  const res = await fetch(`${apiHost}api/v3/pockets/backup`, { // URL remains the same
     method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
+      Authorization: `Bearer ${idToken}`, // Added Authorization header
       appclient: 'organized',
       appversion: import.meta.env.PACKAGE_VERSION,
-      metadata,
+      metadata, // Assuming metadata is passed as a header
     },
     body: JSON.stringify({ cong_backup: reqPayload }),
   });

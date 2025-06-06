@@ -1,8 +1,10 @@
 # How to run Organized local environment – dependencies, backend, and frontend.
 
-**We also have a [video version of this guide](https://www.youtube.com/watch?v=duw2TPJg0wY). It's easy to follow and relatively short.**
+**We also have a [video version of this guide](https://www.youtube.com/watch?v=duw2TPJg0wY) which covers the previous Firebase-based setup. An updated video is planned.**
 
-Hello everyone! Thank you so much for your support in developing the Organized application. In this guide, we will guide you through the steps to set up the local environment to run the application locally. This video covers many steps, but by following along, you'll successfully set up everything and will be ready to start coding.
+Hello everyone! Thank you so much for your support in developing the Organized application. In this guide, we will guide you through the steps to set up the local environment to run the application locally. This guide covers many steps, but by following along, you'll successfully set up everything and will be ready to start coding.
+
+The application now uses a new dedicated backend service for authentication, located in the `auth-backend` directory, which uses PostgreSQL.
 
 ## Part 1: Dependencies
 
@@ -25,16 +27,24 @@ _Now, let’s proceed with the installation of Git._
 
 _There are two valid options for installing Node.js on your system. You can either use an application called [Node Version Manager for Windows (NVM)](https://github.com/coreybutler/nvm-windows), or directly [download Node.js](https://nodejs.org/en), especially if you’re using Linux or macOS. Both methods are acceptable, so you can choose the one that suits you best._
 
-1. Download the NVM
+1. Download the NVM (or Node.js directly).
 2. Install it using all the default options for the installation.
 
-### Install Node Version Manager
+### Install Node Version Manager (if using NVM)
 
-1. Before installing, let’s check the current Long Term Support (LTS), version of Node.js on the [official Node.js website](https://nodejs.org/en). As of now, the LTS version is `20.11.0`.
-2. Back in the Command Prompt, type `nvm install 20.11.0`(or the latest version avaible at the time you are reading this) to start downloading that version of Node.js from the official website. We will also install npm, the package manager for Node.js.
-3. After installation, open Command Prompt and type `nvm use 20.11.0` to use the installed version. Make sure you have admin privileges for setup.
+1. Before installing, let’s check the current Long Term Support (LTS), version of Node.js on the [official Node.js website](https://nodejs.org/en). As of writing, the LTS version is `20.x.x` or higher. Please use the version specified in the `engines` field in `package.json`.
+2. Back in the Command Prompt, type `nvm install [version_from_package.json]` to start downloading that version of Node.js. We will also install npm, the package manager for Node.js.
+3. After installation, open Command Prompt and type `nvm use [version_from_package.json]` to use the installed version. Make sure you have admin privileges for setup.
 
 And that’s it! Node.js is now installed on our computer.
+
+### Install PostgreSQL
+
+_PostgreSQL is required for the new authentication backend (`auth-backend`)._
+
+1.  **Download:** Visit the [official PostgreSQL download page](https://www.postgresql.org/download/) and choose the installer for your operating system.
+2.  **Installation:** Follow the installation wizard. During setup, you will be asked to set a password for the default `postgres` superuser. Remember this password, as you'll need it to create databases and users. You can usually accept default settings for other options.
+3.  **Alternatively, use Docker:** If you prefer Docker, you can run PostgreSQL in a container. An example `docker-compose.yml` or `docker run` command can be found in many online resources. Search for "run postgresql with docker". This often involves setting `POSTGRES_PASSWORD`, `POSTGRES_USER`, and `POSTGRES_DB` environment variables for the container.
 
 ### Install Visual Studio Code
 
@@ -47,161 +57,151 @@ _Next, we’ll move on to our code editor. We use Visual Studio Code, or VS Code
 
 _When you open VS Code for the first time, you'll be asked to personalize its appearance. The IDE will also offer helpful coding tips and suggestions. Feel free to check out these options and click "Mark as done" when you're done._
 
-### Install OpenJDK
+### Install OpenJDK (Optional for `sws2apps-api`)
 
-_Finally, our last dependency for this initial setup is Java. We specifically need the OpenJDK version, as it’s required by the Firebase Emulators._
+_Java (OpenJDK) was previously required for Firebase Emulators. If the `sws2apps-api` still utilizes Firebase emulators for services other than Authentication (e.g., Storage, Functions), you might still need it. If `sws2apps-api`'s Firebase emulator usage is minimal or also being phased out, this might become optional._
 
-1. Go to the [OpenJDK download page](https://www.oracle.com/java/technologies/downloads/) and select the version you prefer. As of now, versions 23 and 21 are available. We'll choose version 23 in this guide, but version 21 will work equally well, as Firebase Emulators need at least version 11.
-2. Now, proceed to download OpenJDK, version 23.
-3. Let's go ahead with the installation using the default options.
+1. Go to a provider like [Adoptium (Eclipse Temurin)](https://adoptium.net/) or [Oracle's OpenJDK page](https://www.oracle.com/java/technologies/downloads/) and select a version (e.g., LTS version like 17 or 21). Firebase Emulators generally need at least version 11.
+2. Download and install OpenJDK.
 
 ### Double-check all dependencies
 
 _Now, let’s do a quick check to confirm that everything has been installed correctly._
 
-1. Open a Command Prompt and type `java --version`. You should see the version you’ve just installed. If you see any errors, try reinstalling it by repeating the previous step once again.
-2. We can perform similar checks for Node.js and npm. Type `node -v` to check the Node.js version, and `npm -v` to check the npm version. If everything is correct, you should see the exact versions you’ve installed.
+1. Open a Command Prompt.
+2. For Node.js and npm: Type `node -v` to check the Node.js version, and `npm -v` to check the npm version.
+3. For PostgreSQL: If you installed it directly, you might have `psql --version`. If using Docker, check your container status: `docker ps`.
+4. (If installed) For Java: Type `java --version`. You should see the version you’ve just installed.
 
 _With that, all our major dependencies are now installed._
 
-## Part 2: Backend API
+## Part 2: Backend Setup
 
-Next, let's proceed to run the local backend API server. This server handles login, Firebase sync, end-to-end encryption, and some other essential features.
+The backend now consists of two main parts:
+1.  **`auth-backend`**: The new service for user authentication (Node.js, PostgreSQL).
+2.  **`sws2apps-api`**: The existing API for data synchronization and other features.
 
-### Clone GitHub projects
+### Clone GitHub projects (if not already done)
 
-1. First thing first, let’s create a new folder in your file system to store both the backend and frontend projects.
-2. Once you’ve created the folder, right-click within it and select ‘Open Git Bash’. You can also use Terminal or Command Prompt if you prefer.
-3. The next step is to clone each of these projects using the `git clone` command. Using the direct GitHub repository URL from the [sws2apps organization](https://github.com/sws2apps), or you can also clone from your own fork if you already have one.
-4. Let’s start by cloning the [API project](https://github.com/sws2apps/sws2apps-api). This should be a quick process as the **sws2apps-api** repository is relatively small.
-5. With the API project cloned, let’s move on to the [frontend project](https://github.com/sws2apps/organized-app), the **Organized app** itself. Please note that this repository is quite large so the cloning process may take more time.
-6. Great! Both repositories have been successfully cloned.
-7. Next, open the `sws2apps-api` folder, right-click within it, and select **Open with Code.** This is a VS Code shortcut that we enabled during the VS Code installation.
-
-_When you open it for the first time, you'll need to trust yourself as the author of the files in this folder. There might be a prompt to install a Dev Containers extension, but it's not necessary for local development, so feel free to ignore it._
+1. Create a new folder in your file system to store all Organized projects if you haven't already.
+2. Open Git Bash (or Terminal/Command Prompt) in this folder.
+3. Clone the main frontend repository which now includes `auth-backend`: `git clone https://github.com/sws2apps/organized-app.git`
+4. Clone the `sws2apps-api` repository if you plan to run it locally: `git clone https://github.com/sws2apps/sws2apps-api.git`
+5. `cd organized-app` to enter the main project directory for subsequent `auth-backend` setup.
 
 ### Install Visual Studio Code extensions
 
-_Some extensions can make development easier. Let's install them!_
+_These extensions are recommended for both backend and frontend development._
 
-1. The first extension is **Prettier,** a useful format that supports JavaScript, HTML, and TypeScript files. Wait for the installation to complete.
-2. The second extension we need is **ESLint,** a tool from Microsoft that helps us write error-free code. Prettier and ESLint work together to help us write better code for our applications.
+1.  **Prettier:** For code formatting.
+2.  **ESLint:** For code linting.
 
-### Prepare Firebase environment
+### A. Setup `auth-backend` (New Authentication Service)
 
-_Before booting up the API server, let’s prepare our environment._
+This service is located in the `auth-backend` directory within the main `organized-app` repository.
 
-1. In VS Code, open a new Terminal by navigating to **View** and selecting **Terminal.** Wait for the Terminal window to load completely.
-2. With the terminal ready, let’s install the Firebase CLI using the command `npm i -g firebase-tools`. This command installs the Firebase CLI globally.
-3. Once installed, you might receive a notice from npm about a new minor version being available. If so, let’s install that quickly.
-4. To check if the Firebase CLI was installed correctly, use the command `firebase --version`. It should display the version of Firebase you just installed. For now, it’s 13.12.0.
-5. Next, let’s authenticate our Firebase Account with the CLI. Type `firebase login`, and you’ll be prompted to complete the authentication in your browser. Ensure that you’re logged into your Google Account and that you have an account on the Firebase Console website.
-6. Once you’ve completed the authentication, the Firebase CLI will be connected to your account.
-7. Now open the `organized-app` (frontend) repo and install the dependencies using the `npm i` command. This will start the installation of all the project’s dependencies.
+1.  **Navigate to `auth-backend`:**
+    Open a terminal and navigate to the `auth-backend` directory:
+    `cd auth-backend`
+2.  **Install Dependencies:**
+    Run `npm install` to install the necessary packages.
+3.  **Database Setup (PostgreSQL):**
+    *   Ensure your PostgreSQL server is running.
+    *   Create a new database for the `auth-backend`. You can use `psql` or a GUI tool like pgAdmin.
+        Example using `psql`:
+        ```sql
+        CREATE DATABASE organized_auth;
+        -- Optionally, create a dedicated user
+        CREATE USER organized_auth_user WITH PASSWORD 'your_secure_password';
+        GRANT ALL PRIVILEGES ON DATABASE organized_auth TO organized_auth_user;
+        ```
+    *   Apply the database schema: The schema is defined in `schema.sql` at the root of the `organized-app` repository. Connect to your newly created database and run the SQL commands from this file.
+        Example using `psql`:
+        `psql -U organized_auth_user -d organized_auth -f ../schema.sql` (Adjust path to `schema.sql` if necessary from your current directory).
+4.  **Environment Variables:**
+    *   Create a `.env` file in the `auth-backend` directory by copying `.env.example`:
+        `cp .env.example .env`
+    *   Update the `.env` file with your specific configurations:
+        *   `DATABASE_URL`: Your PostgreSQL connection string.
+            Format: `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`
+            Example: `postgresql://organized_auth_user:your_secure_password@localhost:5432/organized_auth`
+        *   `JWT_SECRET`: A long, random, strong string for signing access tokens.
+        *   `JWT_REFRESH_SECRET`: A different long, random, strong string for signing refresh tokens.
+        *   `PORT`: Port for the auth-backend to run on (e.g., `3001`).
+        *   `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (if testing Google login).
+        *   `GOOGLE_CLIENT_SECRET`: Your Google OAuth Client Secret.
+        *   `API_BASE_URL`: The base URL of this auth-backend service itself (e.g., `http://localhost:3001`). Used for constructing redirect URIs for OAuth.
+        *   `FRONTEND_URL`: The URL of your frontend application (e.g., `http://localhost:4000`). Used for redirecting after OAuth.
+        *   `PASSWORD_RESET_TOKEN_SECRET`: A secret for password reset tokens.
+        *   `PASSWORD_RESET_TOKEN_EXPIRES_IN`: Expiration time for password reset tokens (e.g., `1h`).
+5.  **Running `auth-backend`:**
+    *   From the `auth-backend` directory, run:
+        `npm run dev`
+    *   This will start the authentication server, typically on port 3001 (or as configured in your `.env`).
 
-#### Create a new Firebase project
+### B. Setup `sws2apps-api` (Existing Data Sync API)
 
-_You need to create your own Firebase project on [their website](https://console.firebase.google.com/). This project will be needed during development._
+Follow the setup instructions within the `sws2apps-api` repository for its own dependencies, Firebase setup (if still used for non-auth services like Storage), and environment variables.
 
-1. We don’t need Analytics for this project, but enabling it won’t cause any issues.
-2. Fill out all the necessary information to create the project and continue.
+**Crucial Note for `sws2apps-api`:**
+This API (for data sync, backup, etc.) must be updated or configured to:
+1.  **Validate JWTs issued by the new `auth-backend`**. It should no longer rely on Firebase Auth for user authentication for its protected endpoints.
+2.  Use the public key corresponding to the `JWT_SECRET` from the `auth-backend` to verify token signatures, or have an endpoint to delegate token introspection to the `auth-backend`.
+3.  The user identifiers (UIDs) in the `sws2apps-api` database might need to be mapped or reconciled with the new user IDs generated by the `auth-backend` (which are UUIDs).
 
-#### Setup the Firebase project
+**Firebase Project for `sws2apps-api` (if still needed for non-Auth services):**
+If `sws2apps-api` still uses Firebase services like Firestore, Storage, or Functions (unrelated to user authentication), you might still need a Firebase project.
+1.  **Create Firebase Project:** If needed, create one on the [Firebase Console](https://console.firebase.google.com/).
+2.  **Service Account Key:** If `sws2apps-api` interacts with Firebase Admin SDK, generate a private key (JSON file) from Project Settings -> Service Accounts in Firebase. This key would be used by `sws2apps-api` (e.g., via `GOOGLE_CONFIG_BASE64` if that's its mechanism).
+3.  **Firebase Emulators (for non-Auth services):** If `sws2apps-api` uses emulators for Firestore, Storage, etc., set them up as per its documentation. The `storage.rules.example` might still be relevant for Storage Emulator.
 
-_Once you have created the Firebase project, go to the **Console.** You should see your project in the list. If it’s not there, refresh the page. Once you see it, open it._
+_The sections on setting up Firebase Authentication providers (Email/Password, Google) in the Firebase Console and using Firebase Auth Emulators for local user authentication are no longer primary for the core login/registration flow, as this is handled by `auth-backend`._
 
-Now, take some more steps to prepare this project for use by the backend project:
+## Part 3: Frontend (`organized-app`)
 
-1. First, navigate to **Project Settings** and select **Service Accounts.** From here, we’ll generate a key that will allow our API to access this project.
-2. Click **Generate new private key,** which will export and download a new JSON file to your computer. We will need this file later, but for now, we can leave it as is.
-3. Next, navigate to **Build** and select **Authentication,** then click **Get Started** to enable Authentication for the project.
-4. Enable the **Email/Password** sign-in provider, which includes Passwordless sign-in. This sign-in method is necessary for our local environment.
-5. You can also enable the **Google sign-in** provider if you wish to use a Google Account during development. Feel free to choose the providers that best suit your development needs.
-6. Once you’ve made your selections, click **Save.**
-
-_Now, we have two providers ready for Authentication in the Firebase console. Remember, this is the only one Firebase Product that we’ll be using from the Firebase Console during development._
-
-_Now the installations of these dependencies are completed._
-
-#### Set up environment variables for the backend API
-
-Firebase Emulators require a storage rule file to set up Firebase Storage locally.
-
-1. To get this file, use the command `cp storage.rules.example storage.rules`. That’s done! Now we have our own storage rules for Firebase.
-2. Let’s also make a copy of the environment file example, using the command `cp .env.example .env`.
-
-Now, let’s assign values to these variables:
-
-1. Let’s move on to the Firebase environment variables. For **FIREBASE_APP_NAME,** use the project id assigned to your firebase project. You can get it from the URL (ie: `organized-app-47c7u` from `https://console.firebase.google.com/u/1/project/organized-app-47c7u/overview`). Alternatively, you can go to **Settings,** then **General,** and find the `Project ID`.
-2. For the **GOOGLE_CONFIG_BASE64,** there are many approaches to get this base64 string of the private key. We’re just showing one way of getting it.
-3. In this example, we’ll use Node directly in the Terminal window by typing `node`.
-4. Let’s create a variable to store our private key JSON contents. Open the JSON file we downloaded earlier and copy its contents. Then, type `const firebaseConfig =` and right after this paste all the JSON content into the Terminal. Press Enter. Remember, it’s just the JSON data saved in this newly defined variable.
-5. To convert it to a base64 string, we use the command `Buffer.from(JSON.stringify(firebaseConfig)).toString('base64')`. Please, note that we recommend using the local converting command rather than online base64 converter tools, because of security reasons. Then, press **Enter.**
-   > In case that didn't work for you, you can try creating a js or ts file and paste all the above config inside of the file, then run the file to get the base64 string
-6. You should now have the base64 encoded string of your Firebase private key. Copy that text to the **GOOGLE_CONFIG_BASE64** variable.
-7. The three environment variables: **MAIL_ADDRESS, MAIL_PASSWORD,** and **MAIL_SENDER_NAME.** are not used during local development, so we can skip them for now.
-8. Additionally, create .firebaserc file with `cp .firebaserc.example .firebaserc` command and update the default field **your-organized-project-id** with your Firebase project ID.
-
-#### Setup the Firebase emulators
-
-1. Type `npm run setup:emulators`. This is the command we use to set up the emulators. Let’s wait for this to start. It may take a few seconds, especially the first time you install all these dependencies.
-2. The CLI will ask if we’re ready to proceed with initializing the emulators. Type `Y` to proceed with the setup to initialize the emulators.
-3. When you’re asked “Which Firebase emulators do you want to set up”, just hit Enter, because all the emulators that we need are already defined.
-4. Then we are asked if we want to download the emulators. Enter `Y` to agree and proceed.
-
-#### Start the Firebase emulators
-
-_Once the download is complete, and the initialization is also complete, we can finally proceed to the next step – starting emulators._
-
-1. To do this, type `npm run start:emulators`, and wait for it to start.
-2. Awesome, the Firebase Emulators are now running perfectly.
-3. Next, open **a new Terminal** in the same VS Code project. On this new Terminal, we’ll start the API project itself. Remember, the first Terminal still has the Firebase Emulators running. These both terminals should be running simultaneously.
-4. Start the dev server by typing `npm run dev`.
-
-_Great, the dev server is now running without errors, indicating it has successfully connected to the Firebase Emulators._
-
-_That completes the setup of the backend project for the local environment. The API is now ready to be used._
-
-## Part 3: Frontend
-
-1. Open the frontend project folder (`organized-app` repo) in VS Code and open a new Terminal.
-2. Install the dependencies by typing `npm i`.
-3. After a while, installation is complete.
+1. Navigate to the root of the `organized-app` repository (if you are in `auth-backend`, `cd ..`).
+2. Install dependencies by typing `npm i`. This might take a while.
 
 ### Setup environment variables for frontend
 
 _Now, let’s add the required environment variables for the frontend application._
 
-1. Create an `.env` file for this frontend project. You can do it starting from the example file `cp .env.example .env`.
-2. Write all the required variables. We need the **VITE_FIREBASE_APIKEY, VITE_FIREBASE_AUTHDOMAIN, VITE_FIREBASE_PROJECTID**, and **VITE_FIREBASE_APPID.** To get these values, go back to the Firebase Console and open your project.
-3. Navigate to **Project Settings.** Find “Your apps” or “Add an app” area and hit the “Web” button. Then create and register a new Web App.
-4. Give a nickname for the web app. For example, ‘Organized web app’.
-5. We don’t need to set up Firebase Hosting for this app, so continue.
-6. In this section, we get all the required values for our environment variables like **apiKey, authDomain, projectId,** and **appId.** Copy these values from the Firebase console to our `.env` file.
-7. (OPTIONAL) **TEST MODE**: By setting `VITE_APP_MODE="TEST"`, you configure the application to run in a test mode, which includes **pre-populated data** and configurations that facilitate testing and demonstration purposes.
+1. Create an `.env` file in the root of the `organized-app` project by copying the example: `cp .env.example .env`.
+2. Update the `.env` file. The key variable for the new authentication system is:
+    *   `VITE_AUTH_BACKEND_URL`: The full URL of your running `auth-backend` service (e.g., `http://localhost:3001`).
+3.  Remove or comment out old Firebase Authentication variables if they are no longer used directly by the frontend for auth (they might still be present in `.env.example` for other Firebase services like Installations if that part wasn't fully removed from frontend yet):
+    *   `VITE_FIREBASE_APIKEY`
+    *   `VITE_FIREBASE_AUTHDOMAIN`
+    *   `VITE_FIREBASE_PROJECTID`
+    *   `VITE_FIREBASE_APPID`
+    *(Note: If the app still uses Firebase for non-auth features like feature flags via Firebase Installations, some of these might still be needed for `firebase/app` initialization. The `VITE_FIREBASE_AUTH_EMULATOR_HOST` is definitely not needed for auth anymore).*
+4.  (OPTIONAL) **TEST MODE**: By setting `VITE_APP_MODE="TEST"`, you configure the application to run in a test mode, which includes **pre-populated data** and configurations that facilitate testing and demonstration purposes.
 
-_All the dependencies were installed, and the environment variables are all ready. We can now start the frontend application._
+_All the dependencies should be installed, and the environment variables ready. We can now start the frontend application._
 
 ### Run the frontend app
 
-1. Type `npm run dev` to start the frontend application.
-2. Well done! The dev server for the frontend application is now ready. Let’s open it in the browser.
+1. Type `npm run dev` in the root of the `organized-app` project to start the frontend application.
+2. The dev server for the frontend application will start, typically on port `4000` or `5173` (Vite's default). Check your terminal output. Let’s open it in the browser.
 
 ### Check if API is working
 
-_Good. The frontend app is working. Let’s test a few functions to ensure that the frontend can communicate properly with the backend API. We’ll see if it can connect to the local backend API that we set up earlier._
+_Good. The frontend app is working. Let’s test a few functions to ensure that the frontend can communicate properly with the new `auth-backend`._
 
 Let’s proceed on this journey as if we were a new user:
 
-1. On this page, we’ll select the option for ‘Baptized brother’ and accept the agreements.
-2. Next, we’ll continue with our authentication. Enter any email (there’s no verification if the email is real or not). Choose your preferred method, then click ‘Send link’. **Please note that the email won’t be sent to a real email address. Instead, simply click a link displayed on the page, simulating the process of clicking a link from an email to complete your authentication.** Now, let’s click ‘Log in’.
-3. Great, the authentication for your account is now complete.
-4. Now, let’s create a congregation. Enter a fictitious first and last name.
-5. Let’s select a country for our testing. Then, find a congregation using a congregation name or number and click ‘Create congregation’.
-6. Now, you’ll be prompted to create an encryption code. Remember, in this new version, **the encryption code is required** after creating your congregation account.
-7. Once this is set, you’ll be directed to the Dashboard page of the Organized app.
-
-This is the ‘Organized’ Dashboard page. From this page, you can access various features of the app as they are developed by our team.
+1.  The application should direct you to a login page or an initial setup page.
+2.  **Registration (if supported via UI, or test directly via API client):** If a sign-up form is available, try creating a new account using an email and password.
+3.  **Login:** Use the email/password login form. Enter the credentials of a user created in your `auth-backend` database (or register a new one).
+    *   Upon successful login, you should be redirected to the main application area (e.g., Dashboard).
+    *   The application should fetch user-specific data.
+4.  **Google OAuth (if configured):**
+    *   Click the "Sign in with Google" button.
+    *   You should be redirected to Google's consent screen.
+    *   After authenticating with Google, you should be redirected back to the frontend's OAuth callback URL (e.g., `/oauth-callback`).
+    *   The frontend should handle this callback, store tokens, and log you in, redirecting you to the dashboard.
+5.  **Accessing Protected Content:** Navigate to areas of the app that require authentication (e.g., user profile) to ensure they are accessible.
+6.  **Logout:** Find and use the logout button. You should be logged out and redirected to the login page.
 
 ### Congratulations and happy coding!
 
