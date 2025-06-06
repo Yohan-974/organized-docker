@@ -1,0 +1,12 @@
+{
+  "message": "User logged in successfully",
+  "user": {
+    "id": "user-id-123",
+    "email": "testuser@example.com",
+    "full_name": "Test User Cypress"
+  },
+  "tokens": {
+    "accessToken": "mock-access-token-123",
+    "refreshToken": "mock-refresh-token-456"
+  }
+}

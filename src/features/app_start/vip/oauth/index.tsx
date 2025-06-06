@@ -3,7 +3,7 @@ import { useAppTranslation } from '@hooks/index';
 import Divider from '@components/divider';
 import OAuthGoogle from './google';
 import OAuthYahoo from './yahoo';
-import OAuthEmail from './email';
+import LoginEmailPassword from './email/LoginEmailPassword'; // Updated import
 import Typography from '@components/typography';
 
 const OAuth = () => {
@@ -11,7 +11,7 @@ const OAuth = () => {
 
   return (
     <>
-      <OAuthEmail />
+      <LoginEmailPassword /> {/* Updated component */}
 
       <Stack spacing="32px">
         <Box sx={{ width: '100%' }}>
