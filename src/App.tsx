@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { createHashRouter, RouterProvider } from 'react-router';
+import { createHashRouter, RouterProvider } from 'react-router-dom'; // Updated import
 import { useAtomValue } from 'jotai';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@components/index';
@@ -54,6 +54,16 @@ const ApplicationDetails = lazy(
 const UpcomingEvents = lazy(
   () => import('@pages/congregation/upcoming_events')
 );
+const OAuthCallbackPage = lazy(() => import('@pages/OAuthCallbackPage'));
+const RequestAccessFormPage = lazy(
+  () => import('@pages/RequestAccessFormPage')
+);
+const RequestPasswordResetPage = lazy( // Import RequestPasswordResetPage
+  () => import('@pages/RequestPasswordResetPage')
+);
+const ResetPasswordPage = lazy( // Import ResetPasswordPage
+  () => import('@pages/ResetPasswordPage')
+);
 
 const queryClient = new QueryClient();
 
@@ -86,6 +96,10 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
           children: [
             // public routes
             { index: true, element: <Dashboard /> },
+            { path: '/oauth-callback', element: <OAuthCallbackPage /> },
+            { path: '/request-access', element: <RequestAccessFormPage /> },
+            { path: '/request-password-reset', element: <RequestPasswordResetPage /> },
+            { path: '/reset-password', element: <ResetPasswordPage /> },
             { path: '/user-profile', element: <MyProfile /> },
             { path: '/weekly-schedules', element: <WeeklySchedules /> },
             {

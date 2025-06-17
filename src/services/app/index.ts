@@ -68,21 +68,19 @@ export const runUpdater = async () => {
   await dbSchedUpdateOutgoingTalksFields();
 };
 
-export const userLogoutSuccess = async () => {
-  await userSignOut();
-  disconnectCongAccount();
-  displaySnackNotification({
-    header: getTranslation({ key: 'tr_errorTitle' }),
-    message: getTranslation({ key: 'logoutSuccess' }),
-    severity: 'success',
-  });
-};
+// userLogoutSuccess function has been removed.
+// Its functionality is now covered by useNewAuth().logout() which handles
+// clearing auth state, tokens, and user-specific data in app_settings via Dexie.
+// The snackbar notification for logout success would now be handled by the UI component
+// that calls useNewAuth().logout(), based on its success/error.
 
 export const handleDeleteDatabase = async () => {
-  setRootModalOpen(true);
-  await dbAppDelete();
-  await userSignOut();
+  setRootModalOpen(true); // This seems to be for a UI modal, keep it.
+  await dbAppDelete(); // Assuming this clears other necessary per-user tables beyond app_settings.
+  // await userSignOut(); // Firebase sign-out removed, handled by useNewAuth().logout().
 
+  // The rest of the function clears localStorage, which is still relevant
+  // for a full "delete data and reset app state" scenario.
   const freezeKeys = [
     'userConsent',
     'organized_whatsnew',
